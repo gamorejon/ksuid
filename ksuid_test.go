@@ -387,3 +387,16 @@ func BenchmarkNew(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkNewRandomTime(b *testing.B) {
+	b.Run("with default randtime", func(b *testing.B) {
+		for i := 0; i != b.N; i++ {
+			NewRandomWithTime(time.Now())
+		}
+	})
+	b.Run("with fast randtime", func(b *testing.B) {
+		for i := 0; i != b.N; i++ {
+			NewFastRandomWithTime(time.Now())
+		}
+	})
+}

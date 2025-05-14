@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"sync"
 	"time"
+	"hash/maphash"
 )
 
 const (
@@ -37,13 +39,13 @@ const (
 )
 
 // KSUIDs are 20 bytes:
-//
-//	00-03 byte: uint32 BE UTC timestamp with custom epoch
-//	04-19 byte: random "payload"
+//  00-03 byte: uint32 BE UTC timestamp with custom epoch
+//  04-19 byte: random "payload"
 type KSUID [byteLength]byte
 
 var (
 	rander     = rand.Reader
+	randMutex  = sync.Mutex{}
 	randBuffer = [payloadLengthInBytes]byte{}
 
 	errSize        = fmt.Errorf("Valid KSUIDs are %v bytes", byteLength)
@@ -223,9 +225,35 @@ func NewRandom() (ksuid KSUID, err error) {
 	return NewRandomWithTime(time.Now())
 }
 
+func NewFastRandomWithTime(t time.Time) (ksuid KSUID, err error) {
+	// Use maphash to generate random bytes, it's faster and doesn't require locks
+	var h maphash.Hash
+	for i := 4; i < 20; i += 8 {
+		r := h.Sum64()
+		for j := 0; j < 8 && i+j < 20; j++ {
+			ksuid[i+j] = byte(r)
+			r >>= 8
+		}
+	}
+	if err != nil {
+		ksuid = Nil // don't leak random bytes on error
+		return
+	}
+	ts := timeToCorrectedUTCTimestamp(t)
+	binary.BigEndian.PutUint32(ksuid[:timestampLengthInBytes], ts)
+	return
+}
+
 func NewRandomWithTime(t time.Time) (ksuid KSUID, err error) {
+	// Go's default random number generators are not safe for concurrent use by
+	// multiple goroutines, the use of the rander and randBuffer are explicitly
+	// synchronized here.
+	randMutex.Lock()
+
 	_, err = io.ReadAtLeast(rander, randBuffer[:], len(randBuffer))
 	copy(ksuid[timestampLengthInBytes:], randBuffer[:])
+
+	randMutex.Unlock()
 
 	if err != nil {
 		ksuid = Nil // don't leak random bytes on error
