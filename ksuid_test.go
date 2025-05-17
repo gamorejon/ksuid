@@ -1,6 +1,7 @@
 package ksuid
 
 import (
+	"runtime"
 	"bytes"
 	"encoding/json"
 	"flag"
@@ -391,12 +392,44 @@ func BenchmarkNew(b *testing.B) {
 func BenchmarkNewRandomTime(b *testing.B) {
 	b.Run("with default randtime", func(b *testing.B) {
 		for i := 0; i != b.N; i++ {
-			NewRandomWithTime(time.Now())
+			_, _ = NewRandomWithTime(time.Now())
 		}
 	})
 	b.Run("with fast randtime", func(b *testing.B) {
 		for i := 0; i != b.N; i++ {
-			NewFastRandomWithTime(time.Now())
+			_, _ = NewFastRandomWithTime(time.Now())
 		}
 	})
+}
+
+func benchProcs(b *testing.B, f func(b *testing.B)) {
+    b.Helper()
+    coreCount := []int{1, 2, 4, 8, 16}
+    for _, n := range coreCount {
+        name := fmt.Sprintf("%d cores", n)
+        b.Run(name, func(b *testing.B) {
+            runtime.GOMAXPROCS(n)
+            f(b)
+        })
+    }
+}
+
+func BenchmarkParallelNewRandomWithTime(b *testing.B) {
+    benchProcs(b, func(b *testing.B) {
+        b.RunParallel(func(b *testing.PB) {
+            for b.Next() {
+                _,_ = NewRandomWithTime(time.Now())
+            }
+        })
+    })
+}
+
+func BenchmarkParallelNewFastRandomWithTime(b *testing.B) {
+    benchProcs(b, func(b *testing.B) {
+        b.RunParallel(func(b *testing.PB) {
+            for b.Next() {
+                _,_ = NewFastRandomWithTime(time.Now())
+            }
+        })
+    })
 }

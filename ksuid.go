@@ -227,18 +227,9 @@ func NewRandom() (ksuid KSUID, err error) {
 
 func NewFastRandomWithTime(t time.Time) (ksuid KSUID, err error) {
 	// Use maphash to generate random bytes, it's faster and doesn't require locks
-	var h maphash.Hash
-	for i := 4; i < 20; i += 8 {
-		r := h.Sum64()
-		for j := 0; j < 8 && i+j < 20; j++ {
-			ksuid[i+j] = byte(r)
-			r >>= 8
-		}
-	}
-	if err != nil {
-		ksuid = Nil // don't leak random bytes on error
-		return
-	}
+	var h, h2 maphash.Hash
+	binary.BigEndian.PutUint64(ksuid[timestampLengthInBytes:], h.Sum64())
+	binary.BigEndian.PutUint64(ksuid[12:], h2.Sum64())
 	ts := timeToCorrectedUTCTimestamp(t)
 	binary.BigEndian.PutUint32(ksuid[:timestampLengthInBytes], ts)
 	return
