@@ -220,12 +220,16 @@ func New() KSUID {
 	return ksuid
 }
 
+func NewFast() KSUID {
+	return NewFastRandomWithTime(time.Now())
+}
+
 // Generates a new KSUID
 func NewRandom() (ksuid KSUID, err error) {
 	return NewRandomWithTime(time.Now())
 }
 
-func NewFastRandomWithTime(t time.Time) (ksuid KSUID, err error) {
+func NewFastRandomWithTime(t time.Time) (ksuid KSUID) {
 	// Use maphash to generate random bytes, it's faster and doesn't require locks
 	var h, h2 maphash.Hash
 	binary.BigEndian.PutUint64(ksuid[timestampLengthInBytes:], h.Sum64())
