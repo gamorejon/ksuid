@@ -1,3 +1,3 @@
-module github.com/segmentio/ksuid
+module github.com/gamorejon/ksuid
 
 go 1.24
