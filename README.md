@@ -1,3 +1,7 @@
+# Why fork this library?
+
+Recently when profiling an extremely hightraffic service, locks in the ksuid generation functions surfaced as a primary bottleneck. This fork provides an additional lockless generation function which runs slightly faster than the default generator on a single threaded system and considerable faster in a system running with many Goroutines.
+
 # ksuid [![Go Report Card](https://goreportcard.com/badge/github.com/segmentio/ksuid)](https://goreportcard.com/report/github.com/segmentio/ksuid) [![GoDoc](https://godoc.org/github.com/segmentio/ksuid?status.svg)](https://godoc.org/github.com/segmentio/ksuid) [![Circle CI](https://circleci.com/gh/segmentio/ksuid.svg?style=shield)](https://circleci.com/gh/segmentio/ksuid.svg?style=shield)
 
 ksuid is an efficient, comprehensive, battle-tested Go library for
